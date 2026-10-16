@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forecast 2027 · Líneas Avantra</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#eef2f7; color:#0f1f35; padding:20px; }
+  .wrap { max-width:1200px; margin:0 auto; }
+  header { background:#0b2d52; color:#fff; border-radius:12px; padding:18px 24px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+  header h1 { font-size:19px; }
+  header p { font-size:11px; color:#93c4f0; margin-top:3px; }
+  .btn { background:#1a5fa8; color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer; }
+  .btn.sec { background:transparent; border:1.5px solid #3b82c4; }
+  .lineas { display:flex; gap:8px; margin-bottom:12px; }
+  .linea-tab { flex:1; background:#fff; border:2px solid #c2d2e6; border-radius:12px; padding:12px 16px; font-size:14px; font-weight:800; color:#4a6080; cursor:pointer; text-align:center; }
+  .linea-tab small { display:block; font-size:10px; font-weight:600; color:#7a92aa; margin-top:2px; }
+  .linea-tab.on { background:#0b2d52; color:#fff; border-color:#0b2d52; }
+  .linea-tab.on small { color:#93c4f0; }
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+  .tab { background:#fff; border:1px solid #c2d2e6; border-radius:99px; padding:7px 14px; font-size:12px; font-weight:600; color:#4a6080; cursor:pointer; }
+  .tab.on { background:#1a5fa8; color:#fff; border-color:#1a5fa8; }
+  .tab.res { border-style:dashed; }
+  .card { background:#fff; border:1px solid #e4ecf5; border-radius:12px; padding:18px; margin-bottom:14px; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:14px; }
+  .kpi { background:#fff; border:1px solid #e4ecf5; border-radius:12px; padding:12px 14px; border-top:3px solid #1a5fa8; }
+  .kpi .v { font-size:21px; font-weight:800; font-family:ui-monospace,Menlo,monospace; }
+  .kpi .l { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#7a92aa; margin-bottom:4px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { font-size:9px; text-transform:uppercase; letter-spacing:.5px; color:#fff; background:#0b2d52; padding:7px 6px; text-align:right; position:sticky; top:0; }
+  th:first-child { text-align:left; border-radius:6px 0 0 0; }
+  th:last-child { border-radius:0 6px 0 0; background:#1a5fa8; }
+  td { padding:5px 6px; border-bottom:1px solid #eef2f7; text-align:right; font-family:ui-monospace,Menlo,monospace; font-size:11.5px; white-space:nowrap; }
+  td:first-child { text-align:left; font-family:inherit; font-weight:600; color:#0f1f35; font-size:12px; }
+  td.tot { background:#f0f4f9; font-weight:800; }
+  tr.inp td:first-child::after { content:' ✎'; color:#b45309; font-size:10px; }
+  input.cell { width:74px; text-align:right; font-family:ui-monospace,Menlo,monospace; font-size:11.5px; padding:3px 5px; border:1px solid #f2d574; background:#fffbe6; border-radius:5px; }
+  input.cell:focus { outline:none; border-color:#1a5fa8; background:#fff; }
+  .calc { color:#4a6080; }
+  .dirRow td:first-child { color:#854F0B; }
+  .nota { font-size:10px; color:#7a92aa; margin-top:10px; line-height:1.6; }
+  .sup { display:flex; gap:14px; flex-wrap:wrap; align-items:center; font-size:11px; color:#4a6080; }
+  .sup label { font-weight:700; }
+  .sup input { width:70px; text-align:right; padding:3px 5px; border:1px solid #f2d574; background:#fffbe6; border-radius:5px; font-family:ui-monospace,Menlo,monospace; }
+  .scroller { overflow-x:auto; }
+  .resline { font-size:11px; color:#7a92aa; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Forecast 2027 · Líneas Avantra</h1>
+      <p>Montos en USD · Celdas amarillas = se capturan en la dinámica · Todo lo demás se calcula solo · <span id="estado">Conectando...</span></p>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn sec" onclick="cargar(true)">Actualizar</button>
+      <button class="btn sec" onclick="exportarCSV()">Exportar CSV</button>
+      <button class="btn sec" onclick="window.print()">Imprimir</button>
+      <button class="btn sec" style="border-color:#c0392b;color:#ffd8d2" onclick="borrarTodo()">Borrar datos</button>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="sup">
+      <span style="font-weight:800;color:#0b2d52;text-transform:uppercase;font-size:10px;letter-spacing:1px;">Supuestos</span>
+      <span><label>Ticket/venta $</label> <input id="sTicket" type="number" value="1764"></span>
+      <span><label>Ventas = compras ×</label> <input id="sFV" type="number" step="0.1" value="3.2"></span>
+      <span><label>Volumen = compras ×</label> <input id="sFVol" type="number" step="0.1" value="3.5"></span>
+      <span><label>$/persona equipo</label> <input id="sFP" type="number" value="1500"></span>
+      <span class="resline">Temporalidad 2026 aplicada por mes (igual que el Excel).</span>
+    </div>
+  </div>
+
+  <div class="lineas" id="lineas"></div>
+  <div class="tabs" id="tabs"></div>
+  <div id="vista"></div>
+</div>
+
+<script>
+const MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const TEMP=[-0.412,-0.37,-0.155,-0.099,0.204,0.471,0.398,0.576,0.097,0.339,0.03,0.067];
+const LINEAS=[
+  { nombre:'Ximena Mejía', dists:[
+    ['Ximena Mejía','89447','Cabeza de línea'],
+    ['Daniela Sanciprián','90103','Línea Ximena'],
+    ['Roberto Calderón','90592','Línea Ximena'],
+    ['Ángel Moreno','92661','Línea Ximena'],
+    ['Sebastián Fernández','92587','Línea Ximena'],
+    ['Patricio de la Garza','92532','Línea Ximena']] },
+  { nombre:'HL Avantra', dists:[
+    ['Alex Zarazúa','88537','Cabeza de la red'],
+    ['Luis Oñate','89727','Cabeza de línea'],
+    ['Samuel Díaz','90829','Línea Luis'],
+    ['Sebastián Saldaña','92304','Línea Luis'],
+    ['Diego Flores','92619','Línea Luis'],
+    ['Santiago Zarazúa','92851','Directo de Alex'],
+    ['Jorge Angulo','92506','Directo de Alex']] }
+];
+// === Base de datos compartida (Supabase, tabla forecast_2027) ===
+const SB_URL='https://wsunevuwoesudzvuojnh.supabase.co/rest/v1/forecast_2027';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzdW5ldnV3b2VzdWR6dnVvam5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5NTYyNjUsImV4cCI6MjA5ODUzMjI2NX0._9wbRO9HotYgKzj8NIzBJG5jmLXOhmJZnkLvk88S8gQ';
+const SB_HDRS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
+
+let data={}; let selLinea=0; let sel=0; // sel = índice de dist dentro de la línea o 'RES'
+
+const sup=()=>({t:+v('sTicket')||1764, fv:+v('sFV')||3.2, fvol:+v('sFVol')||3.5, fp:+v('sFP')||1500});
+const v=id=>document.getElementById(id)?.value;
+// Los datos se guardan por NÚMERO de distribuidor, así no se cruzan entre líneas
+const g=(num,campo,m)=>{ const x=((data[num]||{})[campo]||[])[m]; return x===''||x==null?0:+x };
+const fmt=n=>'$'+Math.round(n).toLocaleString('en-US');
+const f1=n=>(Math.round(n*10)/10).toLocaleString('en-US');
+
+function estado(txt,color){ const e=document.getElementById('estado'); if(e){ e.textContent=txt; e.style.color=color||'#93c4f0'; } }
+
+async function cargar(manual){
+  try{
+    estado('Actualizando...');
+    const r=await fetch(SB_URL+'?select=dist,campo,valores',{headers:SB_HDRS});
+    if(!r.ok) throw new Error(r.status);
+    const rows=await r.json();
+    data={};
+    rows.forEach(x=>{
+      if(x.dist==='_sup'){ // supuestos compartidos
+        const s=x.valores||{};
+        if(s.t)document.getElementById('sTicket').value=s.t;
+        if(s.fv)document.getElementById('sFV').value=s.fv;
+        if(s.fvol)document.getElementById('sFVol').value=s.fvol;
+        if(s.fp)document.getElementById('sFP').value=s.fp;
+        return;
+      }
+      if(!data[x.dist])data[x.dist]={};
+      data[x.dist][x.campo]=x.valores;
+    });
+    estado('Guardado en la nube · todos ven lo mismo','#9fe3bd');
+    render();
+  }catch(e){ estado('Sin conexión: revisa tu internet y pica "Actualizar"','#ffd8d2'); if(manual)alert('No se pudo conectar a la base de datos. Revisa tu internet.'); }
+}
+
+async function guardarFila(num,campo){
+  try{
+    estado('Guardando...');
+    const r=await fetch(SB_URL+'?on_conflict=dist,campo',{method:'POST',
+      headers:{...SB_HDRS,'Prefer':'resolution=merge-duplicates'},
+      body:JSON.stringify({dist:String(num),campo,valores:(data[num]||{})[campo]||[]})});
+    if(!r.ok) throw new Error(r.status);
+    estado('Guardado en la nube · todos ven lo mismo','#9fe3bd');
+  }catch(e){ estado('No se guardó el último cambio: pica "Actualizar" y captúralo de nuevo','#ffd8d2'); }
+}
+
+async function guardarSup(){
+  try{
+    await fetch(SB_URL+'?on_conflict=dist,campo',{method:'POST',
+      headers:{...SB_HDRS,'Prefer':'resolution=merge-duplicates'},
+      body:JSON.stringify({dist:'_sup',campo:'sup',valores:sup()})});
+  }catch(e){}
+}
+
+function setVal(num,campo,m,val){ if(!data[num])data[num]={}; if(!data[num][campo])data[num][campo]=Array(12).fill(''); data[num][campo][m]=val; guardarFila(num,campo); render(); }
+
+function calc(num){
+  const s=sup(); const out={adj:[],vtas:[],nv:[],nvdir:[],pers:[],vol:[]};
+  for(let m=0;m<12;m++){
+    const comp=g(num,'comp',m), dir=g(num,'dir',m);
+    const adj=comp*(1+TEMP[m]); out.adj.push(adj);
+    out.vtas.push(adj*s.fv); out.nv.push(adj*s.fv/s.t);
+    out.nvdir.push(dir*s.fv/s.t); out.pers.push(comp/s.fp); out.vol.push(comp*s.fvol);
+  }
+  return out;
+}
+const suma=a=>a.reduce((x,y)=>x+y,0);
+
+function render(){
+  const L=LINEAS[selLinea];
+  document.getElementById('lineas').innerHTML = LINEAS.map((x,i)=>
+    `<button class="linea-tab ${selLinea===i?'on':''}" onclick="selLinea=${i};sel=0;render()">${x.nombre}<small>${x.dists.length} distribuidores</small></button>`
+  ).join('');
+  document.getElementById('tabs').innerHTML = L.dists.map((D,i)=>
+    `<button class="tab ${sel===i?'on':''}" onclick="sel=${i};render()">${D[0].split(' ')[0]}${D[0].split(' ')[1]?' '+D[0].split(' ')[1][0]+'.':''}</button>`
+  ).join('') + `<button class="tab res ${sel==='RES'?'on':''}" onclick="sel='RES';render()">RESUMEN</button>`;
+  document.getElementById('vista').innerHTML = sel==='RES' ? htmlResumen() : htmlDist(sel);
+}
+
+function filaInput(num,campo,label,extra=''){
+  let tds='';
+  for(let m=0;m<12;m++){
+    const val=((data[num]||{})[campo]||[])[m] ?? '';
+    tds+=`<td><input class="cell" type="number" min="0" value="${val}" onchange="setVal('${num}','${campo}',${m},this.value)"></td>`;
+  }
+  const tot=suma(Array.from({length:12},(_,m)=>g(num,campo,m)));
+  return `<tr class="inp ${extra}"><td>${label}</td>${tds}<td class="tot">${(campo==='ndist'||campo==='pers'||campo==='persred')?f1(Math.max(...Array.from({length:12},(_,m)=>g(num,campo,m)))):fmt(tot)}</td></tr>`;
+}
+function filaCalc(label,arr,money=true,tot='sum',extra=''){
+  const t = tot==='sum'?suma(arr):Math.max(...arr);
+  const f = money?fmt:f1;
+  return `<tr class="${extra}"><td>${label}</td>${arr.map(x=>`<td class="calc">${f(x)}</td>`).join('')}<td class="tot">${f(t)}</td></tr>`;
+}
+
+function htmlDist(d){
+  const D=LINEAS[selLinea].dists[d]; const num=D[1]; const c=calc(num);
+  const totVtas=suma(c.vtas), totNv=suma(c.nv), totDir=suma(Array.from({length:12},(_,m)=>g(num,'dir',m)));
+  return `
+  <div class="kpis">
+    <div class="kpi"><div class="l">Compras 2027</div><div class="v">${fmt(suma(Array.from({length:12},(_,m)=>g(num,'comp',m))))}</div></div>
+    <div class="kpi" style="border-top-color:#b45309"><div class="l">Compras directas</div><div class="v">${fmt(totDir)}</div></div>
+    <div class="kpi" style="border-top-color:#1a8a5a"><div class="l">Ventas proyectadas</div><div class="v">${fmt(totVtas)}</div></div>
+    <div class="kpi" style="border-top-color:#7b4fa8"><div class="l"># de ventas</div><div class="v">${f1(totNv)}</div></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+      <div style="font-size:15px;font-weight:800;color:#0b2d52;">${D[0].toUpperCase()} · #${D[1]}</div>
+      <div class="resline">${D[2]} · captura: # de distribuidores, compras totales y compras directas</div>
+    </div>
+    <div class="scroller"><table>
+      <tr><th>Concepto</th>${MESES.map(m=>`<th>${m}</th>`).join('')}<th>Cierre</th></tr>
+      ${filaInput(num,'ndist','# de distribuidores')}
+      ${filaInput(num,'comp','Compras totales (él + su línea)')}
+      ${filaInput(num,'dir','Compras en distribución DIRECTA','dirRow')}
+      ${filaCalc('# de ventas directas',c.nvdir,false,'sum','dirRow')}
+      ${filaCalc('Compras ajustadas (temporalidad)',c.adj)}
+      ${filaCalc('Ventas totales',c.vtas)}
+      ${filaCalc('# de ventas',c.nv,false)}
+      ${filaInput(num,'pers','# de personas (directa)')}
+      ${filaInput(num,'persred','# de personas en red')}
+      ${filaCalc('Volumen total',c.vol)}
+    </table></div>
+    <p class="nota">Compras directas = compromiso personal del distribuidor (ya incluido dentro de sus compras totales, no se suma aparte). # de ventas = ventas / ticket de ${fmt(sup().t)}. Ejemplo: $17,640 en ventas = 10 ventas.</p>
+  </div>`;
+}
+
+function htmlResumen(){
+  const L=LINEAS[selLinea]; let filas=''; let T={comp:0,dir:0,vtas:0,nv:0};
+  L.dists.forEach(D=>{
+    const num=D[1]; const c=calc(num);
+    const comp=suma(Array.from({length:12},(_,m)=>g(num,'comp',m)));
+    const dir=suma(Array.from({length:12},(_,m)=>g(num,'dir',m)));
+    const vtas=suma(c.vtas), nv=suma(c.nv),
+      pers=Math.max(...Array.from({length:12},(_,m)=>g(num,'pers',m))),
+      persred=Math.max(...Array.from({length:12},(_,m)=>g(num,'persred',m)));
+    T.comp+=comp; T.dir+=dir; T.vtas+=vtas; T.nv+=nv;
+    filas+=`<tr><td>${D[0]} <span class="resline">#${D[1]}</span></td><td class="calc">${D[2]}</td>
+      <td>${fmt(comp)}</td><td style="color:#854F0B">${fmt(dir)}</td><td style="color:#1a8a5a">${fmt(vtas)}</td>
+      <td>${f1(nv)}</td><td>${f1(pers)}</td><td>${f1(persred)}</td></tr>`;
+  });
+  return `<div class="card">
+    <div style="font-size:15px;font-weight:800;color:#0b2d52;margin-bottom:10px;">RESUMEN · TOTAL LÍNEA ${L.nombre.toUpperCase()} 2027</div>
+    <div class="scroller"><table>
+      <tr><th style="text-align:left">Distribuidor</th><th style="text-align:left">Línea</th><th>Compras</th><th>Directas</th><th>Ventas</th><th># ventas</th><th>Personas directa</th><th>Personas red</th></tr>
+      ${filas}
+      <tr><td class="tot" style="font-weight:800">TOTAL LÍNEA</td><td class="tot"></td><td class="tot">${fmt(T.comp)}</td><td class="tot">${fmt(T.dir)}</td><td class="tot">${fmt(T.vtas)}</td><td class="tot">${f1(T.nv)}</td><td class="tot"></td><td class="tot"></td></tr>
+    </table></div>
+    <p class="nota">Los datos se guardan en la nube: todos los que abran este link ven lo mismo. Si alguien más está capturando, pica "Actualizar" para traer sus cambios. Al terminar la dinámica usa "Exportar CSV" para respaldar y pasar los números al Excel oficial.</p>
+  </div>`;
+}
+
+function exportarCSV(){
+  let rows=[['Distribuidor','Dist','Linea','Campo',...MESES,'CIERRE']];
+  LINEAS.forEach(L=>L.dists.forEach(D=>{
+    const num=D[1]; const c=calc(num);
+    const inp=k=>Array.from({length:12},(_,m)=>g(num,k,m));
+    const add=(campo,arr,tot)=>rows.push([D[0],D[1],D[2],campo,...arr.map(x=>Math.round(x*100)/100),Math.round((tot==='max'?Math.max(...arr):suma(arr))*100)/100]);
+    add('# distribuidores',inp('ndist'),'max');
+    add('Compras totales',inp('comp'));
+    add('Compras directas',inp('dir'));
+    add('# ventas directas',c.nvdir);
+    add('Ventas totales',c.vtas);
+    add('# ventas',c.nv);
+    add('# personas directa',inp('pers'),'max');
+    add('# personas en red',inp('persred'),'max');
+  }));
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent('﻿'+csv);
+  a.download='forecast-2027-lineas.csv'; a.click();
+}
+async function borrarTodo(){
+  if(!confirm('¿Borrar todos los datos capturados del forecast PARA TODOS? Esto no se puede deshacer.'))return;
+  try{
+    await fetch(SB_URL+'?dist=neq._nada',{method:'DELETE',headers:SB_HDRS});
+    data={}; render(); estado('Datos borrados','#ffd8d2');
+  }catch(e){ alert('No se pudo borrar. Revisa tu internet.'); }
+}
+['sTicket','sFV','sFVol','sFP'].forEach(id=>document.getElementById(id).addEventListener('change',()=>{guardarSup();render()}));
+render();
+cargar();
+// Se actualiza solo cada 30 segundos (sin interrumpir si estás escribiendo en una celda)
+setInterval(()=>{ if(document.activeElement && document.activeElement.tagName==='INPUT') return; cargar(); },30000);
+</script>
+</body>
+</html>
